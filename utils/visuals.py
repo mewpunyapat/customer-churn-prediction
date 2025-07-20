@@ -5,7 +5,7 @@ import pandas as pd
 def plot_numerical_distribution(df: pd.DataFrame, column: str, title: str):
     """
     Plots the distribution of a numerical column using a histogram with KDE (Kernel Density Estimation).
-    
+
     Args:
         df (pd.DataFrame): Input pandas DataFrame.
         column (str): Column name to plot.
@@ -53,33 +53,77 @@ def plot_categorical_distribution(df: pd.DataFrame, column: str, show_labels: bo
     plt.tight_layout()
     plt.show()
 
-
-
-def churn_rate_by_category(df: pd.DataFrame, column: str, show_labels: bool = True):
+def stacked_bar_churn_ratio(df: pd.DataFrame, column: str):
     """
-    Plots average churn rate for each category in a specified categorical column.
+    Plots stacked bar chart of churn and non-churn proportions for a categorical column.
 
     Args:
-        df (pd.DataFrame): Input pandas DataFrame. Must include a 'Churn' column (binary: 0/1).
-        column (str): Categorical column to group by.
-        show_labels (bool): Whether to show churn rate labels above bars.
-
-    Returns:
-        None. Displays the plot.
+        df (pd.DataFrame): Must include 'Churn' column.
+        column (str): Categorical column to analyze.
     """
-    churn_rates = df.groupby(column)['Churn'].mean().sort_values(ascending=False)
+    prop_df = (df.groupby([column, 'Churn']).size() / df.groupby(column).size()).unstack().fillna(0)
+    prop_df.plot(kind='bar', stacked=True, figsize=(7, 4.5), color=['lightgreen', 'salmon'], edgecolor='black')
 
-    plt.figure(figsize=(7, 4.5))
-    ax = churn_rates.plot(kind='bar', color='salmon', edgecolor='black')
-    plt.title(f'Churn Rate by {column}', fontsize=14, fontweight='bold')
-    plt.ylabel('Churn Rate', fontsize=12)
+    plt.title(f'Proportion of Churn by {column}', fontsize=14, fontweight='bold')
     plt.xlabel(column, fontsize=12)
+    plt.ylabel('Proportion', fontsize=12)
+    plt.legend(title='Churn', labels=['No', 'Yes'])
     plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
 
-    if show_labels:
-        for i, v in enumerate(churn_rates):
-            ax.text(i, v + 0.01, f'{v:.2f}', ha='center', va='bottom', fontsize=9)
+def boxplot_by_churn(df: pd.DataFrame, column: str):
+    """
+    Shows boxplot of a numerical column split by churn status.
 
+    Args:
+        df (pd.DataFrame): Must contain 'Churn' and the given column.
+        column (str): Numerical column to compare.
+    """
+    plt.figure(figsize=(7, 4.5))
+    sns.boxplot(data=df, x='Churn', y=column, palette='Set2')
+    plt.title(f'{column} Distribution by Churn', fontsize=14, fontweight='bold')
+    plt.xlabel('Churn', fontsize=12)
+    plt.ylabel(column, fontsize=12)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+def countplot_with_churn(df: pd.DataFrame, column: str):
+    """
+    Displays countplot of a categorical column with hue based on churn status.
+
+    Args:
+        df (pd.DataFrame): DataFrame with a 'Churn' column.
+        column (str): Categorical column to analyze.
+    """
+    plt.figure(figsize=(7, 4.5))
+    sns.countplot(data=df, x=column, hue='Churn', palette='pastel', edgecolor='black')
+    plt.title(f'Count of Customers by {column} and Churn Status', fontsize=14, fontweight='bold')
+    plt.xlabel(column, fontsize=12)
+    plt.ylabel('Count', fontsize=12)
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+def kdeplot_by_churn(df: pd.DataFrame, column: str):
+    """
+    Plots KDE (density) plots of a numerical column for churned vs non-churned.
+
+    Args:
+        df (pd.DataFrame): Must include 'Churn' column.
+        column (str): Numerical column to analyze.
+    """
+    plt.figure(figsize=(7, 4.5))
+    for churn_value, label in zip([0, 1], ['Not Churned', 'Churned']):
+        sns.kdeplot(df[df['Churn'] == churn_value][column], label=label, fill=True, alpha=0.5)
+
+    plt.title(f'Distribution of {column} by Churn', fontsize=14, fontweight='bold')
+    plt.xlabel(column, fontsize=12)
+    plt.ylabel('Density', fontsize=12)
+    plt.legend()
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.show()
