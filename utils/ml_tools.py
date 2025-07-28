@@ -1,5 +1,6 @@
 from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from sklearn.model_selection import cross_validate
+import numpy as np
 
 def train_model(name, model, X_train, y_train, scoring_metrics=['roc_auc', 'f1', 'precision', 'recall']):
     """
@@ -48,7 +49,32 @@ def train_model(name, model, X_train, y_train, scoring_metrics=['roc_auc', 'f1',
     
     return results
 
-def model_evaluation(model, X_train, y_train, X_test, y_test, baseline_f1=0.574):
+def find_optimal_threshold(y_true, y_proba, metric='f1'):
+    """
+    Find optimal threshold based on different metrics
+    """
+    thresholds = np.arange(0.1, 0.9, 0.01)
+    scores = []
+    
+    for threshold in thresholds:
+        y_pred = (y_proba >= threshold).astype(int)
+        
+        if metric == 'f1':
+            score = f1_score(y_true, y_pred)
+        elif metric == 'precision':
+            score = precision_score(y_true, y_pred)
+        elif metric == 'recall':
+            score = recall_score(y_true, y_pred)
+        
+        scores.append(score)
+    
+    optimal_idx = np.argmax(scores)
+    optimal_threshold = thresholds[optimal_idx]
+    optimal_score = scores[optimal_idx]
+    
+    return optimal_threshold, optimal_score, thresholds, scores
+
+def model_evaluation(model, X_train, y_train, X_test, y_test, threshold, baseline_f1=0.574):
     """
     Comprehensive evaluation of your tuned model.
     """
@@ -61,18 +87,16 @@ def model_evaluation(model, X_train, y_train, X_test, y_test, baseline_f1=0.574)
     # 2. Training vs Test Performance
     print("1. 📊 TRAINING vs TEST PERFORMANCE")
     
-    # Training performance
-    y_train_pred = model.predict(X_train)
     y_train_proba = model.predict_proba(X_train)[:, 1]
-    
-    train_f1 = f1_score(y_train, y_train_pred)
-    train_roc_auc = roc_auc_score(y_train, y_train_proba)
-    
-    # Test performance  
-    y_test_pred = model.predict(X_test)
+    y_train_pred = (y_train_proba >= threshold).astype(int)
+
     y_test_proba = model.predict_proba(X_test)[:, 1]
-    
+    y_test_pred = (y_test_proba >= threshold).astype(int)
+
+    train_f1 = f1_score(y_train, y_train_pred)
     test_f1 = f1_score(y_test, y_test_pred)
+
+    train_roc_auc = roc_auc_score(y_train, y_train_proba)
     test_roc_auc = roc_auc_score(y_test, y_test_proba)
     
     print(f"Training F1:    {train_f1:.4f}")
