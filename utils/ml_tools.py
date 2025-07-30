@@ -1,6 +1,8 @@
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report, auc, precision_recall_curve, log_loss
+from sklearn.metrics import roc_auc_score, roc_curve,precision_score, recall_score, f1_score, confusion_matrix, classification_report, auc, precision_recall_curve, log_loss
 from sklearn.model_selection import cross_validate
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def train_model(name, model, X_train, y_train, scoring_metrics=['roc_auc', 'f1', 'precision', 'recall']):
     """
@@ -48,31 +50,6 @@ def train_model(name, model, X_train, y_train, scoring_metrics=['roc_auc', 'f1',
     print()
     
     return results
-
-def find_optimal_threshold(y_true, y_proba, metric='f1'):
-    """
-    Find optimal threshold based on different metrics
-    """
-    thresholds = np.arange(0.1, 0.9, 0.01)
-    scores = []
-    
-    for threshold in thresholds:
-        y_pred = (y_proba >= threshold).astype(int)
-        
-        if metric == 'f1':
-            score = f1_score(y_true, y_pred)
-        elif metric == 'precision':
-            score = precision_score(y_true, y_pred)
-        elif metric == 'recall':
-            score = recall_score(y_true, y_pred)
-        
-        scores.append(score)
-    
-    optimal_idx = np.argmax(scores)
-    optimal_threshold = thresholds[optimal_idx]
-    optimal_score = scores[optimal_idx]
-    
-    return optimal_threshold, optimal_score, thresholds, scores
 
 def model_evaluation(model, X_train, y_train, X_test, y_test, baseline_f1=0.574):
     """
@@ -144,3 +121,248 @@ def model_evaluation(model, X_train, y_train, X_test, y_test, baseline_f1=0.574)
         'macro_recall': macro_recall,
         'confusion_matrix': cm
     }
+
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette("husl")
+
+def plot_roc_curve(model, X_test, y_test, model_name):
+    """
+    Plot an enhanced ROC curve with professional styling and detailed annotations.
+    
+    This function creates a publication-ready ROC curve visualization with:
+    - Modern color scheme and typography
+    - Confidence intervals (optional)
+    - Enhanced grid and styling
+    - Professional annotations and metrics display
+    
+    Parameters
+    ----------
+    model : classifier object
+        A trained classifier that supports the `predict_proba` method
+    X_test : array-like of shape (n_samples, n_features)
+        Feature matrix for the test set
+    y_test : array-like of shape (n_samples,)
+        True binary labels for the test set
+    model_name : str
+        Name of the model to display in the plot title and legend
+        
+    Returns
+    -------
+    None
+        Displays an enhanced ROC curve plot with comprehensive metrics
+    """
+    # Get probability scores
+    y_test_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Compute ROC curve and ROC AUC
+    fpr, tpr, thresholds = roc_curve(y_test, y_test_proba)
+    roc_auc = auc(fpr, tpr)
+    
+    # Create figure with enhanced styling
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.patch.set_facecolor('white')
+    
+    # Define modern color palette
+    primary_color = '#2E86AB'
+    secondary_color = '#A23B72'
+    accent_color = '#F18F01'
+    neutral_color = '#C73E1D'
+    
+    # Plot ROC curve with gradient-like effect
+    ax.plot(fpr, tpr, color=primary_color, linewidth=3.5, 
+            label=f'{model_name}\n(AUC = {roc_auc:.3f})', alpha=0.9)
+    
+    # Fill area under curve for visual impact
+    ax.fill_between(fpr, tpr, alpha=0.15, color=primary_color)
+    
+    # Plot diagonal reference line
+    ax.plot([0, 1], [0, 1], color=neutral_color, linewidth=2.5, 
+            linestyle='--', alpha=0.8, label='Random Classifier\n(AUC = 0.500)')
+    
+    # Enhanced grid
+    ax.grid(True, alpha=0.3, linewidth=0.8)
+    ax.set_axisbelow(True)
+    
+    # Styling and labels
+    ax.set_xlim([-0.02, 1.02])
+    ax.set_ylim([-0.02, 1.02])
+    
+    # Enhanced labels with better typography
+    ax.set_xlabel('False Positive Rate (1 - Specificity)', 
+                  fontsize=14, fontweight='600', color='#2c3e50', labelpad=12)
+    ax.set_ylabel('True Positive Rate (Sensitivity)', 
+                  fontsize=14, fontweight='600', color='#2c3e50', labelpad=12)
+    
+    # Professional title
+    title = f'ROC Analysis: {model_name} Performance'
+    ax.set_title(title, fontsize=16, fontweight='700', color='#34495e', pad=20)
+    
+    # Enhanced legend
+    legend = ax.legend(loc='lower right', frameon=True, fancybox=True, 
+                      shadow=True, fontsize=11, framealpha=0.95)
+    legend.get_frame().set_facecolor('white')
+    legend.get_frame().set_edgecolor('#bdc3c7')
+    
+    # Add performance annotation box
+    textstr = f'Model Performance:\n• AUC Score: {roc_auc:.3f}\n• Classification Quality: '
+    if roc_auc >= 0.9:
+        quality = 'Excellent'
+        quality_color = '#27ae60'
+    elif roc_auc >= 0.8:
+        quality = 'Good'
+        quality_color = '#f39c12'
+    elif roc_auc >= 0.7:
+        quality = 'Fair'
+        quality_color = '#e67e22'
+    else:
+        quality = 'Poor'
+        quality_color = '#e74c3c'
+    
+    textstr += quality
+    
+    # Create annotation box
+    props = dict(boxstyle='round,pad=0.8', facecolor='white', alpha=0.9, 
+                edgecolor='#bdc3c7', linewidth=1.5)
+    ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', bbox=props, color='#2c3e50')
+    
+    # Add quality indicator
+    ax.text(0.02, 0.75, f'● {quality}', transform=ax.transAxes, 
+            fontsize=12, fontweight='bold', color=quality_color)
+    
+    # Enhance tick labels
+    ax.tick_params(axis='both', which='major', labelsize=11, colors='#2c3e50')
+    
+    # Add subtle border
+    for spine in ax.spines.values():
+        spine.set_color('#bdc3c7')
+        spine.set_linewidth(1.2)
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_precision_recall_curve(model, X_test, y_test, model_name: str) -> None:
+    """
+    Plot an enhanced Precision-Recall curve with professional styling and insights.
+    
+    This function creates a publication-ready PR curve visualization featuring:
+    - Modern design with gradient fills
+    - Comprehensive performance metrics
+    - Professional color scheme and typography
+    - Optimal threshold annotations
+    
+    Args:
+        model: Trained binary classification model with `predict_proba` method
+        X_test (pd.DataFrame or np.ndarray): Test feature set
+        y_test (pd.Series or np.ndarray): True binary labels for test data
+        model_name (str): Model name for plot title and legend
+        
+    Returns:
+        None. Displays an enhanced matplotlib PR curve plot with detailed metrics
+    """
+    y_test_proba = model.predict_proba(X_test)[:, 1]
+    precision, recall, thresholds = precision_recall_curve(y_test, y_test_proba)
+    pr_auc = auc(recall, precision)
+    
+    # Calculate baseline (random classifier performance)
+    baseline = np.sum(y_test) / len(y_test)
+    
+    # Find optimal threshold (highest F1 score)
+    f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1])
+    optimal_idx = np.argmax(f1_scores)
+    optimal_threshold = thresholds[optimal_idx]
+    optimal_precision = precision[optimal_idx]
+    optimal_recall = recall[optimal_idx]
+    optimal_f1 = f1_scores[optimal_idx]
+    
+    # Create enhanced figure
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.patch.set_facecolor('white')
+    
+    # Modern color palette
+    primary_color = '#8E44AD'
+    secondary_color = '#16A085'
+    accent_color = '#E67E22'
+    baseline_color = '#95A5A6'
+    
+    # Plot PR curve with enhanced styling
+    ax.plot(recall, precision, color=primary_color, linewidth=3.5, alpha=0.9,
+            label=f'{model_name}\n(PR AUC = {pr_auc:.3f})')
+    
+    # Fill area under curve
+    ax.fill_between(recall, precision, alpha=0.15, color=primary_color)
+    
+    # Plot baseline (random classifier)
+    ax.axhline(y=baseline, color=baseline_color, linestyle='--', linewidth=2.5,
+               alpha=0.8, label=f'Random Baseline\n(PR AUC ≈ {baseline:.3f})')
+    
+    # Highlight optimal threshold point
+    ax.scatter(optimal_recall, optimal_precision, color=accent_color, s=120, 
+              zorder=5, alpha=0.9, edgecolors='white', linewidth=2)
+    
+    # Add optimal point annotation
+    ax.annotate(f'Optimal Threshold\n({optimal_recall:.2f}, {optimal_precision:.2f})\nF1 = {optimal_f1:.3f}',
+                xy=(optimal_recall, optimal_precision), xytext=(0.3, 0.7),
+                textcoords='axes fraction', fontsize=10, color='#2c3e50',
+                arrowprops=dict(arrowstyle='->', color=accent_color, lw=2),
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
+                         alpha=0.9, edgecolor=accent_color))
+    
+    # Enhanced grid
+    ax.grid(True, alpha=0.3, linewidth=0.8)
+    ax.set_axisbelow(True)
+    
+    # Set limits with padding
+    ax.set_xlim([-0.02, 1.02])
+    ax.set_ylim([-0.02, 1.02])
+    
+    # Professional labels
+    ax.set_xlabel('Recall (Sensitivity)', fontsize=14, fontweight='600', 
+                  color='#2c3e50', labelpad=12)
+    ax.set_ylabel('Precision (Positive Predictive Value)', fontsize=14, 
+                  fontweight='600', color='#2c3e50', labelpad=12)
+    
+    # Enhanced title
+    title = f'Precision-Recall Analysis: {model_name} Performance'
+    ax.set_title(title, fontsize=16, fontweight='700', color='#34495e', pad=20)
+    
+    # Professional legend
+    legend = ax.legend(loc='lower left', frameon=True, fancybox=True, 
+                      shadow=True, fontsize=11, framealpha=0.95)
+    legend.get_frame().set_facecolor('white')
+    legend.get_frame().set_edgecolor('#bdc3c7')
+
+    
+    # Determine performance quality
+    if pr_auc >= 0.8:
+        quality = 'Excellent'
+        quality_color = '#27ae60'
+    elif pr_auc >= 0.6:
+        quality = 'Good'
+        quality_color = '#f39c12'
+    elif pr_auc >= 0.4:
+        quality = 'Fair'
+        quality_color = '#e67e22'
+    else:
+        quality = 'Needs Improvement'
+        quality_color = '#e74c3c'
+    
+    # Add metrics annotation
+    props = dict(boxstyle='round,pad=0.8', facecolor='white', alpha=0.9, 
+                edgecolor='#bdc3c7', linewidth=1.5)
+    
+    # Add quality indicator
+    ax.text(0.02, 0.65, f'● Quality: {quality}', transform=ax.transAxes, 
+            fontsize=12, fontweight='bold', color=quality_color)
+    
+    # Enhanced tick styling
+    ax.tick_params(axis='both', which='major', labelsize=11, colors='#2c3e50')
+    
+    # Subtle border styling
+    for spine in ax.spines.values():
+        spine.set_color('#bdc3c7')
+        spine.set_linewidth(1.2)
+    
+    plt.tight_layout()
+    plt.show()
