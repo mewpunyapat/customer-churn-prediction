@@ -2,7 +2,12 @@
 
 > **Business Impact**: ML system achieving 79.7% recall for proactive customer retention, potentially preventing significant revenue loss through early intervention strategies.
 
-## Dataset  
+Quick Results Summary
+- Model Accuracy: 79.7% recall (catches most at-risk customers!) with approximately 51% precision, an F1 score of 0.624
+- Key Discovery: ChargePerMonthRatio is the #1 churn predictor
+- Best Model: Logistic Regression (surprisingly beat XGBoost!)
+
+## 📊Dataset  
 The dataset used in this project is publicly available on [Kaggle: Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)
 
 It contains information about a telecom company's customers and whether they have churned.
@@ -11,11 +16,12 @@ The dataset includes demographic, service usage, and account information, such a
 - Internet services, phone plans, streaming usage
 - Demographic attributes like gender, senior citizen status, and partner status
 
-The target variable is binary: churned or not churned, making this suitable for **Binary Classification** task
+The target variable is binary: churned or not churned (suitable for **Binary Classification** task)
+- ⚠️**Challenge**: Imbalanced dataset (~73% retained vs 27% churned customers) 
 
 ---
 
-## Objectives  
+## 🎯Objectives  
 The main objective of this project is:
 
 > To develop a machine learning system that accurately predicts customer churn with high recall so that the business can proactively intervene and reduce revenue loss.
@@ -31,9 +37,9 @@ To achieve this, the project is broken down into the following sub-goals:
 
 ---
 
-## Key Insights from EDA
+## 🔍Key Insights from EDA
 1. Tenure has negative correlation with churn rate. Customers with short tenure (0-6 months) exhibit a higher churn rate compared to long-term customers, suggesting that new customers may still feel unfamiliar and evaluate services quality.
-2. Month-to-month contract type makes up the majority of customer base. This type of contract also exhibits the highest churn rate compared to others due to its flexibility and low commitment. It also shows that customer who has month-to-month contract also have low tenure
+2. Month-to-month contract type makes up the majority of customer base. This type of contract also exhibits the highest churn rate compared to others due to its flexibility and low commitment. It also shows that customers who have month-to-month contract also have low tenure
 3. High monthly charges correlate with an increase in churn likelihood. The business can focus this segment by monitoring satisfaction or offer some incentives to make them feel worth of what they pay
 4. Fiber optic internet users show a 2x higher churn rate than DSL users, suggesting service-related dissatisfaction.
 5. Electronic check significantly increase churn rate
@@ -41,7 +47,7 @@ To achieve this, the project is broken down into the following sub-goals:
 
 ---
 
-## Engineered Features
+## 🧪Engineered Features
 From the customer data, the following features were extracted:
 - Feature 1: Fiber_NoTechSupport 
 - Feature 2: M2M_Electronic check
@@ -52,7 +58,7 @@ This feature engineering boosted the ROC AUC by 15% and improved the F1 score up
 
 ---
 
-## Model Selection
+## 📈Model Selection
 Models were evaluated using ROC AUC due to the binary classification task and imbalanced labels. Three models (Logistic Regression, Random Forest, XGBoost) were tuned with GridSearchCV and RandomizedSearchCV for tree models with 80 iterations over 5-fold stratified cross-validation. The best-performing model is Logistic Regression with the following parameters:
 
 <pre> {'C': 0.001, 'max_iter': 500, 'penalty': 'l2', 'solver': 'liblinear', "class_weight": "balanced"} </pre>
@@ -66,7 +72,7 @@ Models were evaluated using ROC AUC due to the binary classification task and im
 - Logistic Regression (AP = 0.657) slightly outperforms XGBoost (AP = 0.650) across the recall range.
 - PR curves reveal that Logistic Regression retains slightly higher precision at mid-to-high recall zones, which is desirable for business alert systems.
 
-## 🏆 Model Performance Comparison
+## 🏆Model Performance Comparison
 
 | Model | Test ROC AUC | Test F1 | Test Recall | Status |
 |-------|-------------|---------|-------------|---------|
@@ -78,10 +84,10 @@ Models were evaluated using ROC AUC due to the binary classification task and im
 
   ---
 
-## Feature Importance  
+## 📌Feature Importance  
 The Logistic Regression model, selected for its 0.8490 ROC AUC and 79.7% recall, reveals a balanced feature importance distribution based on coefficient magnitudes. The top features driving churn predictions are:  
 
-- **ChargePerMonthRatio** (Rank 1, coef ~0.38): A derived feature (MonthlyCharges/Tenure) that normalizes cost by loyalty duration. A ratio > 1.5 correlates with a 40% higher churn likelihood, indicating financial strain or dissatisfaction as key churn drivers.  
+- **ChargePerMonthRatio** (Rank 1, coef ~0.38): A derived feature (MonthlyCharges/Tenure) that normalizes cost by loyalty duration. A ratio > 1.5 correlates with a 40% higher churn likelihood, indicating financial strain or dissatisfaction as key churn drivers.
 - **Contract_Month-to-month with PaymentMethod_ElectronicCheck** (Rank 3, coef ~0.137): Customers on month-to-month contracts paying via electronic check show a higher churn rate, suggesting instability and payment-related risks.  
 - **InternetService_FiberOptic with NoTechSupport** (Rank 4, coef ~0.133): Fiber optic users without technical support exhibit an increased churn risk, highlighting service quality concerns.  
 
@@ -90,7 +96,7 @@ These features, including engineered ones, contributed to a 15% ROC AUC uplift a
 Insights support actionable business strategies such as promoting longer contracts, bundling tech support, and offering discounts for high-paying month-to-month users
 
 ---
-## What can be done in the future
+## 🚀What can be done in the future
 - Develop a Streamlit dashboard for real-time churn monitoring.
 - Explore Artificial Neural Networks for potentially higher performance.
 - Integrate cost-saving metrics to align with business ROI.
